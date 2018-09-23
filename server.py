@@ -41,16 +41,15 @@ def new_client(client, address):
             elif data["type"] == "message":
                 if data["payload"]["dest"] in connections:
                     connections[data["payload"]["dest"]].send(raw_data)
+                    print("SERVER >> Sent", raw_data.decode("utf-8"), "to", data["payload"]["dest"])
                 else:
                     print("SERVER >> User name", data["payload"]["dest"], "not registered")
 
             elif data["type"] == "broadcast":
                 for user in connections:
                     if user != data["payload"]["source"]:
-                        print(user)
-                        print(connections[user])
-                        print(raw_data)
                         connections[user].send(raw_data)
+                        print("SERVER >> Sent", raw_data.decode("utf-8"), "to", user)
 
             # No other types of data are allowed! (for now)
             else:
