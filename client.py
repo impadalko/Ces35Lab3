@@ -1,5 +1,6 @@
 import json
 import socket
+import os
 import _thread
 
 # System parameters
@@ -14,9 +15,17 @@ name = ""
 
 def send_message():
     while True:
-        print("To whom is the next message? (user name for direct message or b for broadcast)")
+        print("User name for direct message, b for broadcast or q for quiting")
         dest = input()
-        print("Which is the message?")
+        if dest == "q":
+            print("Bye")
+            data = json.dumps({"type": "quit", "payload": {"source": name}})
+            s.send(data.encode("utf-8"))
+            s.close()
+            # Need to use os instead of sys, because sys only stops the thread
+            os._exit(0)
+
+        print("What is the message?")
         msg = input()
         if dest == "b":
             data = json.dumps({"type": "broadcast", "payload": {"source": name, "content": msg}})
@@ -28,7 +37,7 @@ def send_message():
 print("What name do you want to use?")
 while True:
     name = input()
-    if name == "b":
+    if name == "b" or name == "q":
         print("Reserved name. Try another one")
         continue
     data = json.dumps({"type": "connection", "payload": {"name": name}})
@@ -46,10 +55,17 @@ while True:
 _thread.start_new_thread(send_message, ())
 
 while True:
-    data = s.recv(size)
-    if data:
-        data = s.recv(size)
-        print("Received: %s" % data.decode('utf-8'))
+    raw_data = s.recv(size)
+    if raw_data:
+        data = json.loads(raw_data.decode("utf-8"))
+        if data["type"] == "broadcast":
+            print(data["payload"]["source"], "(broadcast) >>", data["payload"]["content"])
+        elif data["type"] == "message":
+            print(data["payload"]["source"], ">>", data["payload"]["content"])
+        else:
+            print("Something wrong has happened, tell about this to the system admin!")
+            print("And send him this:", raw_data)
+            os._exit(1)
 
 # Close the connection
 s.close()

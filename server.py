@@ -37,7 +37,7 @@ def new_client(client, address):
                 print("SERVER >> Sent", response, "to", address)
 
             # If the data is of type message, a client is attempting to send a
-            # message to another, for now, only, redirects it.
+            # message to another. For now, redirects it accordingly.
             elif data["type"] == "message":
                 if data["payload"]["dest"] in connections:
                     connections[data["payload"]["dest"]].send(raw_data)
@@ -45,13 +45,21 @@ def new_client(client, address):
                 else:
                     print("SERVER >> User name", data["payload"]["dest"], "not registered")
 
+            # If the data is of type broadcast, a client is attempting to send a
+            # message to all the others clients.
             elif data["type"] == "broadcast":
                 for user in connections:
                     if user != data["payload"]["source"]:
                         connections[user].send(raw_data)
                         print("SERVER >> Sent", raw_data.decode("utf-8"), "to", user)
 
-            # No other types of data are allowed! (for now)
+            # If the data type is quit, the client wants to close the connection.
+            # This is a client responsibility: only removes the client from the known hosts
+            elif data["type"] == "quit":
+                del connections[data["payload"]["source"]]
+                print("SERVER >> Removed", data["payload"]["source"], "from connections")
+
+            # No other types of data are allowed! (should not happen)
             else:
                 print("SERVER >> Invalid message type received from", address)
                 response = json.dumps({"type": "error", "payload": {"message": "Invalid data type"}})
